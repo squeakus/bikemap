@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	<title>Dublin Bike Map</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
+	<script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+</head>
+<body>
+<div id="mapid" style="width: 800px; height: 600px;"></div>
+<script>
+
+	var mymap = L.map('mapid').setView([53.343, -6.27], 13);
+
+
+
+	L.tileLayer('https://api.mapbox.com/styles/v1/jonathanbyrn/cityo3dd800da2iqi95gvn64r/tiles/256/{z}/{x}/{y}?access_token={accessToken}', {
+	    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+	    maxZoom: 18,
+	    id: 'mapbox.streets',
+	    accessToken: 'pk.eyJ1Ijoiam9uYXRoYW5ieXJuIiwiYSI6ImNpZ2RsZ3NrZDJiYm50ZG02eTNhNGt2OGEifQ.-LjytHg0DAfmQnhUrIh_mA'
+	}).addTo(mymap);
+
+
+	function drawStation(name, lat, lng, full, free){
+		var station = name + ":\n" +full+" bikes, "+ free + " free";
+		if(free < 2){
+			stationfill = '#30f';
+			stationcol = 'blue';
+		}
+		else if (full == 0 ){
+			stationfill = '#f03';
+			stationcol = 'red';
+		}
+    else if (full < 2 ){
+      stationfill = '#FF4500';
+      stationcol = 'orange';
+    }
+
+		else{
+			stationfill = '#0f0';
+			stationcol = 'green';
+		}
+
+		L.circle([lat, lng], 30, {
+			color: stationcol,
+			fillColor: stationfill,
+			fillOpacity: 0.5
+		}).addTo(mymap).bindPopup(station);
+
+	}
+
+	function onLocationFound(e) {
+	    var radius = e.accuracy / 2;
+
+	    L.marker(e.latlng).addTo(mymap)
+	        .bindPopup("You are within " + radius + " meters from this point").openPopup();
+
+	    L.circle(e.latlng, radius).addTo(mymap);
+	}
+
+	function getData(url) {
+	var data;
+	    $.ajax({
+					type: "GET",
+	        async: false, //thats the trick
+	        url: url,
+					dataType: "json",
+    			error: function(response){
+						console.log("call failed");
+					},
+	        success: function(response){
+	           data = response;
+	        }
+	    });
+	    return data;
+	}
+
+	var bikes = getData('https://api.citybik.es/dublinbikes.json');
+	console.log(bikes);
+	for (var i = 0; i < bikes.length; i++){
+    	var bike = bikes[i];
+  		var name = bike['name'];
+			var lat = bike['lat'];
+			var lng = bike['lng'];
+			lat = lat / 1000000;
+			lng = lng / 1000000;
+			var full = bike['bikes'];
+			var free = bike['free'];
+			drawStation(name, lat, lng, full, free);
+	}
+
+
+	mymap.on('locationfound', onLocationFound);
+	mymap.locate({setView: true, maxZoom: 15});
+
+	var popup = L.popup();
+
+</script>
+
+
+
+</body>
+</html>
